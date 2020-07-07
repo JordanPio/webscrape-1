@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "npm": "^6.13.6",
+    "npm": "^6.14.6",
     "puppeteer": "^2.0.0"
   },
   "devDependencies": {},
