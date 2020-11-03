@@ -1,0 +1,113 @@
+### ESTOQUE
+select date, SUM(custototal) as custototal from estoque where date ='2020-08-24' group by date;
+
+
+
+### CONTAS A PAGAR
+select data, SUM(saldo) as TOTAL from apagar where data='2020-08-27'group by data; 
+
+--tabela
+select conta, sum(saldo) as total, (sum(saldo)/sum(sum(saldo)) over()) as percenttotal from apagar where data ='2020-08-27' group by conta order by total desc;
+
+---weekly projects
+select date_trunc('week', vencimento::date) as weekly, sum(saldo) from apagar where data='2020-08-27' group by weekly order by weekly;
+
+### CONTAS A RECEBER
+
+MOSTRAR os clientes que mais devem
+select data, conta, cliente, SUM(saldo) as TOTAL from receber where descricao not like '%CREDITO%' group by data, cliente, conta order by total desc ;
+
+MOSTRAR ATRASADAS
+select cliente, sum(saldo) total from receber where descricao not like '%CREDITO%' and data='2020-08-27' and vencimento < now()::date group by cliente order by total desc ;
+
+TOTAL contas a receber
+select data, SUM(saldo) as TOTAL from receber where descricao not like '%CREDITO%' and data='2020-08-27' group by data ;
+
+--weekly pr
+select date_trunc('week', vencimento::date) as weekly, sum(saldo) from receber where descricao not like '%CREDITO%'and data='2020-08-27' group by weekly order by weekly;
+
+
+
+### VENDAS TOTAIS
+select sum(totalvendas) as TotalVendido, sum(custototal) as TotalCusto, sum(lucro) as TotalLucro from vendastotais where de='2020-01-01' and ate='2020-05-01';
+
+
+### VENDAS periodo
+
+VENDAS ONLINE descricao
+select cliente, sum(totalliquido) as TotalVendas from vendasperiodo where data >='2020-05-01'and data <='2020-08-27' and cliente='B2W' or cliente like '%MAGAZINE%' or cliente like '%Mercado%' group by cliente order by totalvendas desc;
+
+VENDAS ONLINE TOTAL ONLY
+select sum(totalliquido) as TotalVendas from vendasperiodo where data >='2020-05-01'and data <='2020-07-01' and cliente='B2W' or cliente like '%MAGAZINE%' or cliente like '%Mercado%' order by totalvendas desc;
+
+VENDAS TOTAL PERIODO descricao
+select cliente, sum(totalliquido) as TotalVendas from vendasperiodo where data >='2020-05-01'and data <='2020-07-01' group by cliente order by totalvendas desc;
+
+VENDAS TOTAL PERIODO TOTAL ONLY
+select sum(totalliquido) as TotalVendas from vendasperiodo where data >='2020-05-01'and data <='2020-07-01' order by totalvendas desc;
+ 
+
+ ### BALANCO DADOS
+
+POR DATA
+ select data, tipo, conta, total from balanco where data ='2017-11-20';
+
+SOMENTE ATIVOS
+select data, tipo, conta, total from balanco where data ='2017-11-20' and tipo like '%Ativo%';
+
+SOMENTE ATIVOS TOTAL
+select data, tipo, conta, total from balanco where data ='2017-11-20' and tipo like '%Ativo% %Total%'
+
+### PIVOT TABLE BACK TO NORMAL
+
+select conta, tipo, json_object_agg(data, total ORDER BY data)
+
+FROM (
+	SELECT conta, tipo, data, total
+		FROM balanco
+		GROUP BY conta, tipo, data, total) s
+		GROUP BY conta, tipo
+		ORDER BY conta;
+
+### CONTAS PAGAS
+
+select conta, sum(pago) as TOTAL from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-06-01' and conta not like '%Retirada%' and conta not like '%Mercadoria%' group by conta order by total desc;
+
+// THIS NEEDS TO BE ADJUSTED OT THE TOTAL % NEEDS TO BE CALCULATED SEPARATE
+
+correct 
+select conta, sum(pago) as TOTAL, (sum(pago)/ sum(sum(pago)) over ()) as percenttotal from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-06-01' and conta not like '%Retirada%' and conta not like '%Mercadoria%' group by conta order by total desc;
+
+TOTAL conts pagas durante periodo
+select sum(pago) as TOTAL from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-06-01' and conta not like '%Retirada%' and conta not like '%Mercadoria%';
+
+--- Aggregate month
+select conta, json_object_agg(month, total ORDER BY month) FROM (SELECT conta, date_trunc('month', vencimento::date) as month, sum(pago) as total FROM pagas where datapagamento >='2020-04-01' and datapagamento <='2020-06-01' and conta not like '%Retirada%' and conta not like '%Mercadoria%' GROUP BY conta, month) s GROUP BY conta ORDER BY conta;
+
+
+--aggregate c/ detalhes
+select conta, json_object_agg(vencimento, descricao, total ORDER BY vencimento) FROM (SELECT conta, vencimento, descricao, sum(pago) as total FROM pagas where datapagamento >='2020-04-01' and datapagamento <='2020-06-01' and conta not like '%Retirada%' and conta not like '%Mercadoria%' GROUP BY conta, descricao, vencimento) s GROUP BY conta ORDER BY conta;
+
+
+
+##DEVOLUCOES TOTAIS sem B2W
+select sum(pago) as total from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and conta like '%Dif%' and descricao not like '%B2W%';
+
+##Devolucoes somente B2W
+select sum(pago) as total from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and conta like '%Dif%' and descricao like '%B2W%';
+
+
+Everything except B2W
+select conta, descricao, sum(pago) as total from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and conta like '%Dif%' and descricao not like '%B2W%'  or conta like '%Tari%' and descricao not like '%B2W%' group by conta, descricao order by total desc;
+
+Diferenca Operacional
+select conta, descricao, sum(pago) as total from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and descricao like '%DEVO%' or descricao like '%Dev%' or descricao like '%Canc%' or descricao like '%CANC%' group by conta, descricao order by total desc;
+
+###Main Query Pagas tirando tarifas bancarias B2W
+
+select conta, sum(pago) as TOTAL, (sum(pago)/ sum(sum(pago)) over ()) as percenttotal from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and conta not like '%Retirada%' and conta not like '%Mercadoria%' and conta not like '%Impostos%' and conta not like '%Frete%' and conta not like '%Tarifas Mercado Livre%' and conta not like '%Difere%' and descricao not like '%TARIFAS B2W%' and descricao not like '%COMISSAO B2W%' and descricao not like '%COMISSAO MAGAZINE LUIZA%' group by conta order by total desc;
+--old
+select conta, sum(pago) as TOTAL, (sum(pago)/ sum(sum(pago)) over ()) as percenttotal from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and conta not like '%Retirada%' and conta not like '%Mercadoria%' group by conta order by total desc
+
+###Checagem das contas (Usar somente pra checar o que ta dentro de cada pagamento)
+select conta, descricao, datapagamento, sum(pago) as total from pagas where datapagamento >='2020-05-01' and datapagamento <='2020-08-27' and conta like '%Tarifas%' group by conta, descricao, datapagamento order by total desc;
